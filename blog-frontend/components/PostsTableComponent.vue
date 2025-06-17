@@ -23,7 +23,7 @@
                                 <td>{{ post.user.name }}</td>
                                 <td>{{ post.category.title }}</td>
                                 <td>
-                                    <a :href="'/admin/blog/posts/' + post.id + '/edit'">
+                                    <a :href="'/blog/posts/' + post.id">
                                         {{ post.title }}
                                     </a>
                                 </td>
