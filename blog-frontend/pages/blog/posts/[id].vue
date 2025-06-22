@@ -1,22 +1,49 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
 
 const route = useRoute()
+const router = useRouter()
 const postId = route.params.id
 const post = ref<any>(null)
 const error = ref<string | null>(null)
 const activeTab = ref<'main' | 'extra'>('main')
+const isEdit = ref(false)
+const isSaving = ref(false)
+
+// Для редагування — копія полів
+const editFields = ref<any>({
+    title: '',
+    content_raw: '',
+    slug: '',
+    excerpt: '',
+    category_id: '',
+    is_published: false
+})
 
 onMounted(async () => {
+    await fetchPost()
+})
+
+async function fetchPost() {
     try {
         const response = await fetch(`http://localhost:8000/api/posts/${postId}`)
         if (!response.ok) throw new Error('Пост не знайдено')
-        post.value = await response.json()
+        const data = await response.json()
+        post.value = data
+        // Заповнюємо поля для редагування
+        Object.assign(editFields.value, {
+            title: data.title,
+            content_raw: data.content_raw,
+            slug: data.slug,
+            excerpt: data.excerpt,
+            category_id: data.category_id,
+            is_published: !!data.is_published
+        })
     } catch (err: any) {
         error.value = err.message
     }
-})
+}
 
 function formatDate(date: string): string {
     return new Date(date).toLocaleString('uk-UA', {
@@ -26,6 +53,48 @@ function formatDate(date: string): string {
         hour: '2-digit',
         minute: '2-digit'
     })
+}
+
+// Перемикач режиму редагування
+function enableEdit() {
+    isEdit.value = true
+}
+
+// Зберегти зміни
+async function saveEdit() {
+    isSaving.value = true
+    try {
+        const response = await fetch(`http://localhost:8000/api/posts/${postId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(editFields.value)
+        })
+        const respText = await response.text()  // читаємо raw-відповідь
+        if (!response.ok) {
+            console.log('Server response:', respText)
+            throw new Error(respText || 'Помилка при збереженні')
+        }
+        isEdit.value = false
+        await fetchPost()
+    } catch (err: any) {
+        error.value = err.message
+    }
+    isSaving.value = false
+}
+
+
+// Видалити пост
+async function deletePost() {
+    if (!confirm('Ви впевнені, що хочете видалити пост?')) return
+    try {
+        const response = await fetch(`http://localhost:8000/api/posts/${postId}`, {
+            method: 'DELETE'
+        })
+        if (!response.ok) throw new Error('Помилка видалення')
+        router.push('/BlogPostsUi')// або змініть на свій шлях
+    } catch (err: any) {
+        error.value = err.message
+    }
 }
 </script>
 
@@ -41,8 +110,23 @@ function formatDate(date: string): string {
             <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div class="lg:col-span-3">
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+                        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg flex justify-between items-center">
                             <h2 class="text-sm font-medium text-gray-700">Опубліковано</h2>
+                            <div>
+                                <button
+                                    v-if="!isEdit"
+                                    class="text-blue-600 text-sm hover:underline mr-3"
+                                    @click="enableEdit"
+                                >
+                                    Редагувати
+                                </button>
+                                <button
+                                    class="text-red-600 text-sm hover:underline"
+                                    @click="deletePost"
+                                >
+                                    Видалити
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Tabs -->
@@ -69,6 +153,13 @@ function formatDate(date: string): string {
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Заголовок</label>
                                     <input
+                                        v-if="isEdit"
+                                        v-model="editFields.title"
+                                        type="text"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
+                                    />
+                                    <input
+                                        v-else
                                         type="text"
                                         :value="post.title"
                                         disabled
@@ -78,6 +169,13 @@ function formatDate(date: string): string {
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Текст статті</label>
                                     <textarea
+                                        v-if="isEdit"
+                                        v-model="editFields.content_raw"
+                                        rows="12"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none resize-none"
+                                    ></textarea>
+                                    <textarea
+                                        v-else
                                         :value="post.content_raw"
                                         disabled
                                         rows="12"
@@ -89,6 +187,13 @@ function formatDate(date: string): string {
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Псевдонім (slug)</label>
                                     <input
+                                        v-if="isEdit"
+                                        v-model="editFields.slug"
+                                        type="text"
+                                        class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none"
+                                    />
+                                    <input
+                                        v-else
                                         type="text"
                                         :value="post.slug"
                                         disabled
@@ -98,6 +203,13 @@ function formatDate(date: string): string {
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Короткий текст (excerpt)</label>
                                     <textarea
+                                        v-if="isEdit"
+                                        v-model="editFields.excerpt"
+                                        rows="4"
+                                        class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none resize-none"
+                                    ></textarea>
+                                    <textarea
+                                        v-else
                                         :value="post.excerpt"
                                         disabled
                                         rows="4"
@@ -107,6 +219,13 @@ function formatDate(date: string): string {
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Категорія</label>
                                     <input
+                                        v-if="isEdit"
+                                        v-model="editFields.category_id"
+                                        type="text"
+                                        class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none"
+                                    />
+                                    <input
+                                        v-else
                                         type="text"
                                         :value="post.category ? post.category.title : `Категорія #${post.category_id}`"
                                         disabled
@@ -114,16 +233,34 @@ function formatDate(date: string): string {
                                     />
                                 </div>
                                 <div class="flex items-center gap-2 pt-2">
-                                    <input type="checkbox" :checked="!!post.is_published" disabled />
+                                    <input
+                                        v-if="isEdit"
+                                        type="checkbox"
+                                        v-model="editFields.is_published"
+                                    />
+                                    <input
+                                        v-else
+                                        type="checkbox"
+                                        :checked="!!post.is_published"
+                                        disabled
+                                    />
                                     <label class="text-sm text-gray-700">Опубліковано</label>
                                 </div>
                             </div>
                         </div>
                         <!-- Bottom Actions -->
                         <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg flex justify-between items-center">
-                            <button class="text-blue-600 text-sm hover:underline">
-                                Видалити
-                            </button>
+                            <div />
+                            <div>
+                                <button
+                                    v-if="isEdit"
+                                    class="bg-blue-600 text-white px-4 py-2 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                                    :disabled="isSaving"
+                                    @click="saveEdit"
+                                >
+                                    {{ isSaving ? 'Збереження...' : 'Зберегти' }}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -131,8 +268,12 @@ function formatDate(date: string): string {
                 <div class="space-y-4">
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
                         <div class="p-4">
-                            <button class="w-full bg-blue-600 text-white px-4 py-2 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
-                                Зберегти
+                            <button
+                                v-if="isEdit"
+                                class="w-full bg-gray-400 text-white px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-500 transition-colors"
+                                @click="isEdit = false"
+                            >
+                                Скасувати
                             </button>
                         </div>
                     </div>
@@ -151,7 +292,7 @@ function formatDate(date: string): string {
                                 <div class="text-gray-800">{{ formatDate(post.updated_at) }}</div>
                             </div>
                             <div>
-                                <div class="text-gray-600 font-medium mb-1">Опубліковано</div>
+                                <div class="text-gray-600 font-medium mb-1 text-xs">Опубліковано</div>
                                 <div class="text-gray-800">{{ formatDate(post.published_at) }}</div>
                             </div>
                         </div>
