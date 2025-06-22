@@ -1,23 +1,11 @@
 <template>
-    <nav class="bg-gray-50 border-b border-gray-200 px-6 py-3">
-        <div class="flex gap-6">
-            <NuxtLink
-                to="/BlogPosts"
-                class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                :class="{ 'text-gray-900 font-semibold': route.path === '/BlogPosts' }"
-            >
-                Plain Table
-            </NuxtLink>
-            <NuxtLink
-                to="/BlogPostsUi"
-                class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                :class="{ 'text-gray-900 font-semibold': route.path === '/BlogPostsUi' }"
-            >
-                UI Table
-            </NuxtLink>
-        </div>
+    <nav class="bg-gray-50 px-6 py-3 flex gap-6">
+        <NuxtLink to="/BlogPosts" class="hover:underline" :class="{ 'font-bold underline': $route.path === '/BlogPosts' }">Plain Table</NuxtLink>
+        <NuxtLink to="/BlogPostsUi" class="hover:underline" :class="{ 'font-bold underline': $route.path === '/BlogPostsUi' }">UI Table</NuxtLink>
+        <NuxtLink to="/blog/categories" class="hover:underline" :class="{ 'font-bold underline': $route.path === '/blog/categories' }">Categories</NuxtLink>
     </nav>
 </template>
+
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'

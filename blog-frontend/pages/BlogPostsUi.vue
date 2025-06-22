@@ -1,28 +1,6 @@
-<template>
-    <div class="p-4">
-        <h1 class="text-3xl font-bold mb-6">Пости (Nuxt UI Table)</h1>
-        <client-only placeholder="Завантажую таблицю...">
-            <n-data-table
-                :columns="columns"
-                :data="posts"
-                :loading="loading"
-            />
-            <n-pagination
-                v-model:page="page"
-                v-model:page-size="perPage"
-                :item-count="total"
-                :page-sizes="[10, 20, 50, 100]"
-                show-size-picker
-                @update:page="onPageChange"
-                @update:page-size="onPageSizeChange"
-            />
-
-        </client-only>
-    </div>
-</template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, h } from 'vue'
+import { ref, watch, onMounted, h } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
 
 interface Post {
@@ -33,11 +11,11 @@ interface Post {
     category: { title: string }
 }
 
-const posts = ref<Post[]>([])
+const posts   = ref<Post[]>([])
 const loading = ref(false)
-const page = ref(1)
+const page    = ref(1)
 const perPage = ref(10)
-const total = ref(0)
+const total   = ref(0)
 
 const columns: DataTableColumns<Post> = [
     { title: '#', key: 'id', width: 60 },
@@ -49,10 +27,7 @@ const columns: DataTableColumns<Post> = [
         render(row) {
             return h(
                 'a',
-                {
-                    href: `/blog/posts/${row.id}`,
-                    class: 'text-blue-600 hover:underline'
-                },
+                { href: `/blog/posts/${row.id}`, class: 'text-blue-600 hover:underline' },
                 row.title
             )
         }
@@ -60,26 +35,15 @@ const columns: DataTableColumns<Post> = [
     { title: 'Дата публікації', key: 'published_at' }
 ]
 
-const pagination = computed(() => ({
-    page: page.value,
-    pageSize: perPage.value,
-    itemCount: total.value,
-    showSizePicker: true,
-    pageSizes: [10, 20, 50, 100],
-}))
-
 async function fetchPosts() {
     loading.value = true
     try {
         const res = await $fetch('http://localhost:8000/api/blog/posts', {
-            params: {
-                page: page.value,
-                per_page: perPage.value
-            }
+            params: { page: page.value, per_page: perPage.value }
         })
-        posts.value = res.data
-        total.value = res.total
-        page.value = res.current_page
+        posts.value   = res.data
+        total.value   = res.total
+        page.value    = res.current_page
         perPage.value = Number(res.per_page)
     } finally {
         loading.value = false
@@ -94,8 +58,30 @@ function onPageSizeChange(newSize: number) {
     page.value = 1
 }
 
-onMounted(() => {
-    fetchPosts()
-})
+onMounted(fetchPosts)
 watch([page, perPage], fetchPosts)
 </script>
+
+<template>
+    <div class="p-4">
+        <h1 class="text-3xl font-bold mb-6">Пости (Nuxt UI Table)</h1>
+        <client-only>
+            <n-data-table
+                :columns="columns"
+                :data="posts"
+                :loading="loading"
+            />
+            <div class="mt-4 flex justify-center">
+                <n-pagination
+                    v-model:page="page"
+                    v-model:page-size="perPage"
+                    :item-count="total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    show-size-picker
+                    @update:page="onPageChange"
+                    @update:page-size="onPageSizeChange"
+                />
+            </div>
+        </client-only>
+    </div>
+</template>

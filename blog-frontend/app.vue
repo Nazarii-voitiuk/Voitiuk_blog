@@ -1,10 +1,10 @@
 <template>
-    <NuxtLayout>
+    <n-config-provider>
         <Navigation />
         <NuxtPage />
-    </NuxtLayout>
+    </n-config-provider>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import Navigation from '~/components/Navigation.vue'
 </script>

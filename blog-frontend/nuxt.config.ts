@@ -1,20 +1,35 @@
+// nuxt.config.ts
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
-    devtools: { enabled: true },
-    css: ['@/assets/css/tailwind.css'],
-    postcss: {
-        plugins: {
-            tailwindcss: {},
-            autoprefixer: {},
-        },
-    },
+    modules: [
+        '@nuxtjs/tailwindcss'
+    ],
+
+    components: true,
+
     build: {
-        transpile: ['vueuc', 'naive-ui'],
+        transpile: [
+            'naive-ui',
+            'vueuc',
+            'vooks',
+            '@css-render/vue3-ssr'
+        ]
     },
+
     vite: {
-        optimizeDeps: {
-            include: ['vueuc', 'naive-ui'],
+        ssr: {
+            noExternal: [
+                'naive-ui',
+                'vueuc',
+                'vooks',
+                '@css-render/vue3-ssr'
+            ]
         },
-    },
+        server: {
+            fs: {
+                allow: ['..']
+            }
+        }
+    }
 })
